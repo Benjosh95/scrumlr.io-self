@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/go-chi/render"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
@@ -22,6 +23,8 @@ import (
 
 type Server struct {
 	basePath string
+
+	webAuthnInstance *webauthn.WebAuthn
 
 	realtime *realtime.Broker
 	auth     auth.Auth
@@ -46,6 +49,7 @@ type Server struct {
 
 func New(
 	basePath string,
+	webAuthnInstance *webauthn.WebAuthn,
 	rt *realtime.Broker,
 	auth auth.Auth,
 	boards services.Boards,
@@ -87,6 +91,7 @@ func New(
 
 	s := Server{
 		basePath:                         basePath,
+		webAuthnInstance:                 webAuthnInstance,
 		realtime:                         rt,
 		boardSubscriptions:               make(map[uuid.UUID]*BoardSubscription),
 		boardSessionRequestSubscriptions: make(map[uuid.UUID]*BoardSessionRequestSubscription),
@@ -144,6 +149,10 @@ func (s *Server) publicRoutes(r chi.Router) chi.Router {
 				r.Get("/callback", s.verifyAuthProviderCallback)
 			})
 		})
+		r.Get("/passkeys", s.getCreationOptions) //Path + Handler
+		r.Post("/passkeys", s.finishRegistration)
+		r.Get("/passkeyslogin", s.beginLogin)
+		r.Post("/passkeyslogin", s.finishLogin)
 	})
 }
 

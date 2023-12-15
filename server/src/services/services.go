@@ -17,6 +17,9 @@ type Users interface {
 	CreateAzureAdUser(ctx context.Context, id, name, avatarUrl string) (*dto.User, error)
 	CreateAppleUser(ctx context.Context, id, name, avatarUrl string) (*dto.User, error)
 	Update(ctx context.Context, body dto.UserUpdateRequest) (*dto.User, error)
+	// GetCreationOptions(ctx context.Context, id string) (*dto.User, error) BeginRegistration?
+	// FinishRegistration(ctx context.Context, id string) (*dto.User, error)?
+
 }
 
 type Feedback interface {

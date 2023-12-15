@@ -25,6 +25,7 @@ import (
 	"scrumlr.io/server/services/users"
 	"scrumlr.io/server/services/votings"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -214,6 +215,23 @@ func main() {
 }
 
 func run(c *cli.Context) error {
+	var webAuthnInstance *webauthn.WebAuthn
+
+	// Initialize webAuthnInstance
+	wconfig := &webauthn.Config{
+		RPDisplayName: "Go Webauthn",
+		RPID:          "localhost",
+		RPOrigins:     []string{"http://localhost:3000"},
+	}
+
+	// Attempt to create a new WebAuthn instance
+	var err error
+	webAuthnInstance, err = webauthn.New(wconfig)
+	if err != nil {
+		fmt.Println(err)
+		// Handle the error appropriately
+	}
+
 	db, err := migrations.MigrateDatabase(c.String("database"))
 	if err != nil {
 		return errors.Wrap(err, "unable to migrate database")
@@ -309,6 +327,7 @@ func run(c *cli.Context) error {
 
 	s := api.New(
 		basePath,
+		webAuthnInstance,
 		rt,
 		authConfig,
 		boardService,

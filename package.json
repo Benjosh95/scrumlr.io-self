@@ -17,6 +17,7 @@
     "@fontsource/raleway": "^5.0.16",
     "@react-hook/resize-observer": "^1.2.6",
     "@reduxjs/toolkit": "^1.9.7",
+    "@simplewebauthn/browser": "^8.3.4",
     "avataaars": "^2.0.0",
     "classnames": "^2.3.2",
     "file-saver": "^2.0.5",
