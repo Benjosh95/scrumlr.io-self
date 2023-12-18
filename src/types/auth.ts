@@ -4,6 +4,7 @@ export interface Auth {
   id: string;
   name: string;
   avatar?: AvataaarProps;
+  credentials?: [];
 }
 
 export interface AuthState {

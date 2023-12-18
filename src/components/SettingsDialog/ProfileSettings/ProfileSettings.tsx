@@ -10,6 +10,7 @@ import {Toggle} from "components/Toggle";
 import {AvatarSettings} from "../Components/AvatarSettings";
 import {SettingsInput} from "../Components/SettingsInput";
 import {SettingsButton} from "../Components/SettingsButton";
+import PasskeySettings from "../Components/PasskeySettings";
 
 export const ProfileSettings = () => {
   const {t} = useTranslation();
@@ -39,6 +40,7 @@ export const ProfileSettings = () => {
           />
 
           <AvatarSettings id={id} />
+
           <div className="profile-settings__hotkey-settings">
             <SettingsButton
               className="profile-settings__toggle-hotkeys-button"
@@ -54,6 +56,8 @@ export const ProfileSettings = () => {
               <InfoIcon />
             </a>
           </div>
+
+          <PasskeySettings />
         </div>
       </div>
     </div>

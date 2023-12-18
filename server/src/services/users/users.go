@@ -39,23 +39,6 @@ func (s *UserService) Get(ctx context.Context, userID uuid.UUID) (*dto.User, err
 	return new(dto.User).From(user), err
 }
 
-// func (s *UserService) GetCreationOptions(ctx context.Context, userID uuid.UUID) (*dto.User, error) {
-// 	// log := logger.FromContext(ctx)
-// 	// user, err := s.database.GetUser(userID)
-
-// 	// if err != nil {
-// 	// 	if err == sql.ErrNoRows {
-// 	// 		return nil, common.NotFoundError
-// 	// 	}
-// 	// 	log.Errorw("unable to get user", "user", userID, "err", err)
-// 	// 	return nil, common.InternalServerError
-// 	// }
-
-// 	// fmt.Print("service uwe")
-// 	// return new(dto.User).From(user), err
-// 	return "uwe"
-// }
-
 func (s *UserService) LoginAnonymous(_ context.Context, name string) (*dto.User, error) {
 	user, err := s.database.CreateAnonymousUser(name)
 	return new(dto.User).From(user), err
@@ -88,9 +71,10 @@ func (s *UserService) CreateAppleUser(_ context.Context, id, name, avatarUrl str
 
 func (s *UserService) Update(_ context.Context, body dto.UserUpdateRequest) (*dto.User, error) {
 	user, err := s.database.UpdateUser(database.UserUpdate{
-		ID:     body.ID,
-		Name:   body.Name,
-		Avatar: body.Avatar,
+		ID:          body.ID,
+		Name:        body.Name,
+		Avatar:      body.Avatar,
+		Credentials: body.Credentials,
 	})
 	return new(dto.User).From(user), err
 }

@@ -7,9 +7,10 @@ export interface TextInputProps extends DetailedHTMLProps<InputHTMLAttributes<HT
   rightAdornment?: ReactElement;
   leftAdornment?: ReactElement;
   actions?: ReactNode;
+  loginType?: "social" | "passkeys";
 }
 
-export const TextInput: FC<TextInputProps> = ({className, leftAdornment, rightAdornment, actions, type = "text", ...other}) => {
+export const TextInput: FC<TextInputProps> = ({className, leftAdornment, rightAdornment, actions, type = "text", loginType = "social", ...other}) => {
   if (!(leftAdornment || rightAdornment || actions)) {
     return <input className={classNames("text-input", className)} type={type} {...other} />;
   }
@@ -25,7 +26,7 @@ export const TextInput: FC<TextInputProps> = ({className, leftAdornment, rightAd
   }
 
   return (
-    <div className="text-input__container">
+    <div className={classNames({"text-input__container": loginType === "social", "text-input__container-passkeys": loginType === "passkeys"})}>
       <div className="text-input__input-wrapper">
         {leftAdornment}
         <input

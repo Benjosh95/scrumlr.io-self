@@ -9,6 +9,7 @@ import (
 
 	"scrumlr.io/server/auth"
 	"scrumlr.io/server/services/health"
+	"scrumlr.io/server/services/passkeys"
 
 	"scrumlr.io/server/api"
 	"scrumlr.io/server/database"
@@ -215,9 +216,9 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	var webAuthnInstance *webauthn.WebAuthn
+	var webAuthn *webauthn.WebAuthn
 
-	// Initialize webAuthnInstance
+	// Initialize webAuthn Instance
 	wconfig := &webauthn.Config{
 		RPDisplayName: "Go Webauthn",
 		RPID:          "localhost",
@@ -226,7 +227,7 @@ func run(c *cli.Context) error {
 
 	// Attempt to create a new WebAuthn instance
 	var err error
-	webAuthnInstance, err = webauthn.New(wconfig)
+	webAuthn, err = webauthn.New(wconfig)
 	if err != nil {
 		fmt.Println(err)
 		// Handle the error appropriately
@@ -324,10 +325,11 @@ func run(c *cli.Context) error {
 	healthService := health.NewHealthService(dbConnection, rt)
 	assignmentService := assignments.NewAssignmentService(dbConnection, rt)
 	boardReactionService := board_reactions.NewReactionService(dbConnection, rt)
+	passkeyService := passkeys.NewPasskeyService(dbConnection, rt)
 
 	s := api.New(
 		basePath,
-		webAuthnInstance,
+		webAuthn,
 		rt,
 		authConfig,
 		boardService,
@@ -340,6 +342,7 @@ func run(c *cli.Context) error {
 		feedbackService,
 		assignmentService,
 		boardReactionService,
+		passkeyService,
 		c.Bool("verbose"),
 		!c.Bool("disable-check-origin"),
 	)

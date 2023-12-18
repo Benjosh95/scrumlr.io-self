@@ -48,8 +48,19 @@
   text-align: center;
 }
 
+.login-board__passkey-button + .login-board__divider,
+.login-board__passkey + .login-board__divider,
 .login-providers + .login-board__divider {
   display: block;
+}
+
+.login-board__passkey-button {
+  width: 100%;
+}
+
+.login-board__passkey-button:first-child {
+  width: 16px;
+  height: 16px;
 }
 
 .login-board__divider::after {

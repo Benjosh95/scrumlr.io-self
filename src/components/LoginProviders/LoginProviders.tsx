@@ -1,4 +1,4 @@
-import {Auth} from "utils/auth";
+// import {Auth} from "utils/auth";
 import {useTranslation} from "react-i18next";
 import {ReactComponent as GoogleIcon} from "assets/icon-google.svg";
 import {ReactComponent as GitHubIcon} from "assets/icon-github.svg";
@@ -14,14 +14,17 @@ export interface LoginProvidersProps {
 
 export const LoginProviders = ({originURL = window.location.href}) => {
   const {t} = useTranslation();
-  const providers = useAppSelector((state) => state.view.enabledAuthProvider);
+  let providers = useAppSelector((state) => state.view.enabledAuthProvider);
 
-  if (providers.length === 0) {
-    return null;
-  }
+  // if (providers.length === 0) {
+  //   return null;
+  // }
+
+  // Mock
+  providers = ["GOOGLE", "MICROSOFT"];
 
   const signIn = (provider: string) => async () => {
-    await Auth.signInWithAuthProvider(provider, originURL);
+    // await Auth.signInWithAuthProvider(provider, originURL);
   };
 
   return (

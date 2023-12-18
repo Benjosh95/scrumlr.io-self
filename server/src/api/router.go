@@ -24,7 +24,7 @@ import (
 type Server struct {
 	basePath string
 
-	webAuthnInstance *webauthn.WebAuthn
+	webAuthn *webauthn.WebAuthn
 
 	realtime *realtime.Broker
 	auth     auth.Auth
@@ -39,6 +39,7 @@ type Server struct {
 	feedback       services.Feedback
 	assignments    services.Assignments
 	boardReactions services.BoardReactions
+	passkeys       services.Passkeys
 
 	upgrader websocket.Upgrader
 
@@ -49,7 +50,7 @@ type Server struct {
 
 func New(
 	basePath string,
-	webAuthnInstance *webauthn.WebAuthn,
+	webAuthn *webauthn.WebAuthn,
 	rt *realtime.Broker,
 	auth auth.Auth,
 	boards services.Boards,
@@ -62,6 +63,7 @@ func New(
 	feedback services.Feedback,
 	assignments services.Assignments,
 	boardReactions services.BoardReactions,
+	passkeys services.Passkeys,
 	verbose bool,
 	checkOrigin bool,
 ) chi.Router {
@@ -91,7 +93,7 @@ func New(
 
 	s := Server{
 		basePath:                         basePath,
-		webAuthnInstance:                 webAuthnInstance,
+		webAuthn:                         webAuthn,
 		realtime:                         rt,
 		boardSubscriptions:               make(map[uuid.UUID]*BoardSubscription),
 		boardSessionRequestSubscriptions: make(map[uuid.UUID]*BoardSessionRequestSubscription),
@@ -106,6 +108,7 @@ func New(
 		feedback:                         feedback,
 		assignments:                      assignments,
 		boardReactions:                   boardReactions,
+		passkeys:                         passkeys,
 	}
 
 	// initialize websocket upgrader with origin check depending on options
@@ -148,11 +151,12 @@ func (s *Server) publicRoutes(r chi.Router) chi.Router {
 				r.Get("/", s.beginAuthProviderVerification)
 				r.Get("/callback", s.verifyAuthProviderCallback)
 			})
+
+			r.Route("/passkeys", func(r chi.Router) {
+				r.Post("/begin-authentication", s.generateAuthenticationOptions)
+				r.Post("/finish-authentication", s.verifyAuthentication)
+			})
 		})
-		r.Get("/passkeys", s.getCreationOptions) //Path + Handler
-		r.Post("/passkeys", s.finishRegistration)
-		r.Get("/passkeyslogin", s.beginLogin)
-		r.Post("/passkeyslogin", s.finishLogin)
 	})
 }
 
@@ -186,7 +190,13 @@ func (s *Server) protectedRoutes(r chi.Router) {
 		r.Route("/user", func(r chi.Router) {
 			r.Get("/", s.getUser)
 			r.Put("/", s.updateUser)
+
+			r.Route("/passkeys", func(r chi.Router) {
+				r.Get("/begin-registration", s.generateRegistrationOptions)
+				r.Post("/finish-registration", s.verifyRegistration)
+			})
 		})
+
 	})
 }
 

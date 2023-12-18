@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"scrumlr.io/server/common/dto"
 	"scrumlr.io/server/common/filter"
@@ -17,9 +18,6 @@ type Users interface {
 	CreateAzureAdUser(ctx context.Context, id, name, avatarUrl string) (*dto.User, error)
 	CreateAppleUser(ctx context.Context, id, name, avatarUrl string) (*dto.User, error)
 	Update(ctx context.Context, body dto.UserUpdateRequest) (*dto.User, error)
-	// GetCreationOptions(ctx context.Context, id string) (*dto.User, error) BeginRegistration?
-	// FinishRegistration(ctx context.Context, id string) (*dto.User, error)?
-
 }
 
 type Feedback interface {
@@ -103,4 +101,9 @@ type Assignments interface {
 
 type BoardReactions interface {
 	Create(ctx context.Context, board uuid.UUID, body dto.BoardReactionCreateRequest)
+}
+
+type Passkeys interface {
+	CreateSession(ctx context.Context, session *webauthn.SessionData) (string, error) //use dto instead of webauthn.sessionData?
+	GetSession(ctx context.Context, userId uuid.UUID) (*webauthn.SessionData, error)  //use same dto instead of database.passkeysession?
 }

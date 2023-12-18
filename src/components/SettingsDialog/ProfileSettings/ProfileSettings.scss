@@ -97,6 +97,11 @@ $settings__item-height: 48px;
   }
 }
 
+.profile-settings__passkey {
+  background-color: $color-dark-mode-note;
+  border-radius: 8px;
+}
+
 [theme="dark"] {
   .profile-settings__open-cheat-sheet-button {
     color: $color-middle-gray;

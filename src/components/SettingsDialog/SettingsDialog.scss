@@ -45,6 +45,7 @@ $settings-dialog-container--bottom: 62px;
   background: $color-white-one;
   width: 100%;
   padding-top: 50px;
+  padding-bottom: 60px;
   overflow-y: hidden; // so that reset state banner can flow out
 }
 [theme="dark"] .settings-dialog__content {

@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"scrumlr.io/server/common"
-	"scrumlr.io/server/logger"
 	"strings"
 	"time"
+
+	"scrumlr.io/server/common"
+	"scrumlr.io/server/logger"
 
 	"github.com/go-chi/render"
 	"github.com/markbates/goth/gothic"
@@ -119,3 +120,7 @@ func (s *Server) verifyAuthProviderCallback(w http.ResponseWriter, r *http.Reque
 	}
 	w.WriteHeader(http.StatusSeeOther)
 }
+
+// func (s *Server) SignUpInWithPasskey() { ?
+
+// }
