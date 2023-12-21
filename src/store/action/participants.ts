@@ -78,9 +78,10 @@ export const ParticipantActionFactory = {
    * Edits a user. It will be applied immediately on the local client and send to the server via the middleware and an API request.
    * @param user
    */
-  editSelf: (user: Auth) => ({
+  editSelf: (user: Auth, editCredentials: boolean = false) => ({
     type: ParticipantAction.EditSelf,
     user,
+    editCredentials
   }),
 
   /**

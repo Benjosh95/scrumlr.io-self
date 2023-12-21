@@ -18,6 +18,7 @@ export const authReducer = (state: AuthState = {user: undefined, initializationS
         id: action.id,
         name: action.name,
         avatar: action.avatar,
+        credentials: action.credentials,
       },
     };
   }

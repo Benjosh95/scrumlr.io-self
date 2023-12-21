@@ -1,10 +1,10 @@
 import {AvataaarProps} from "components/Avatar";
-
+import {Credential} from "./credential"
 export interface Auth {
   id: string;
   name: string;
   avatar?: AvataaarProps;
-  credentials?: [];
+  credentials?: Credential[]; // create type
 }
 
 export interface AuthState {

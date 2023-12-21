@@ -153,7 +153,7 @@ func (s *Server) publicRoutes(r chi.Router) chi.Router {
 			})
 
 			r.Route("/passkeys", func(r chi.Router) {
-				r.Post("/begin-authentication", s.generateAuthenticationOptions)
+				r.Get("/begin-authentication", s.generateAuthenticationOptions)
 				r.Post("/finish-authentication", s.verifyAuthentication)
 			})
 		})

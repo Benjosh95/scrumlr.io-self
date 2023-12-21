@@ -50,11 +50,12 @@ export const passParticipantsMiddleware = (stateAPI: MiddlewareAPI<Dispatch, App
   }
 
   if (action.type === Action.EditSelf) {
-    API.editUser(action.user).catch(() => {
+// TODO Overwriting/deleting Credentials CONTINUE
+    API.editUser(action.user, action.editCredentials).catch(() => {
       Toast.error({
         title: i18n.t("Error.editSelf"),
         buttons: [i18n.t("Error.retry")],
-        firstButtonOnClick: () => store.dispatch(Actions.editSelf(action.user)),
+        firstButtonOnClick: () => store.dispatch(Actions.editSelf(action.user, action.editCredentials)),
       });
     });
   }

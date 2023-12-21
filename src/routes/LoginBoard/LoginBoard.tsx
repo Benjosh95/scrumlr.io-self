@@ -2,7 +2,7 @@ import {Link, useNavigate} from "react-router-dom";
 import {getRandomName} from "constants/name";
 import {Auth} from "utils/auth";
 import {Toast} from "utils/Toast";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {LoginProviders} from "components/LoginProviders";
 import {Trans, useTranslation} from "react-i18next";
 import {useLocation} from "react-router";
@@ -16,7 +16,7 @@ import {Button} from "components/Button";
 import {TextInput} from "components/TextInput";
 import {TextInputLabel} from "components/TextInputLabel";
 import {ValidationError} from "components/ValidationError";
-import {startAuthentication, startRegistration} from "@simplewebauthn/browser";
+import {startAuthentication} from "@simplewebauthn/browser";
 import {SERVER_HTTP_URL, SHOW_LEGAL_DOCUMENTS} from "../../config";
 
 interface State {
@@ -28,7 +28,7 @@ export const LoginBoard = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState(getRandomName());
   const [termsAccepted, setTermsAccepted] = useState(!SHOW_LEGAL_DOCUMENTS);
   const [submitted, setSubmitted] = useState(false);
@@ -38,9 +38,9 @@ export const LoginBoard = () => {
     redirectPath = (location.state as State).from.pathname;
   }
 
-  // useEffect(() => {
-  //   loginWithPasskey(true) //rename to startLogin
-  // }, []);
+  useEffect(() => {
+    loginWithPasskey(true) //rename to startLogin
+  }, []);
 
   // anonymous sign in and redirection to board path that is in history
   async function handleLogin() {
@@ -55,65 +55,66 @@ export const LoginBoard = () => {
     setSubmitted(true);
   }
 
-  async function registerPasskey() {
-    try {
-      // get Registration Options from server
-      const response_1 = await fetch(`${SERVER_HTTP_URL}/user/passkeys/begin-registration`, {
-        credentials: "include",
-        method: "GET",
-      });
+  // async function registerPasskey() {
+  //   try {
+  //     // get Registration Options from server
+  //     const response_1 = await fetch(`${SERVER_HTTP_URL}/user/passkeys/begin-registration`, {
+  //       credentials: "include",
+  //       method: "GET",
+  //     });
 
-      const data = await response_1.json(); // assuming the response is in JSON format
-      console.log("data", data); // log the data received from the server Options + session
+  //     const data = await response_1.json(); // assuming the response is in JSON format
+  //     console.log("data", data); // log the data received from the server Options + session
 
-      // modify to require residentKey = true
-      data.Options.publicKey.authenticatorSelection.requireResidentKey = true;
-      // pass creationOptions to authenticator to create Passkey (user verification usw.)
-      const creationOptions = await data.Options.publicKey; // type it?
-      const attResp = await startRegistration(await creationOptions);
-      console.log("attResp", attResp);
+  //     // modify to require residentKey = true
+  //     data.Options.publicKey.authenticatorSelection.requireResidentKey = true;
+  //     // pass creationOptions to authenticator to create Passkey (user verification usw.)
+  //     const creationOptions = await data.Options.publicKey; // type it?
+  //     const attResp = await startRegistration(await creationOptions);
+  //     console.log("attResp", attResp);
 
-      // pass signed Challenge + pubkey to Server
-      const response_2 = await fetch(`${SERVER_HTTP_URL}/user/passkeys/finish-registration`, {
-        method: "POST",
-        body: JSON.stringify(attResp),
-      });
-      const data_2 = await response_2.json();
-      console.log(data_2);
-    } catch (error) {
-      console.error(error);
-    }
-  }
+  //     // pass signed Challenge + pubkey to Server
+  //     const response_2 = await fetch(`${SERVER_HTTP_URL}/user/passkeys/finish-registration`, {
+  //       method: "POST",
+  //       body: JSON.stringify(attResp),
+  //     });
+  //     const data_2 = await response_2.json();
+  //     console.log(data_2);
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // }
 
   async function loginWithPasskey(autofill = true) {
     try {
       // get login options from my RP (challenge, ...)
-      const response = await fetch(`${SERVER_HTTP_URL}/passkeys`, {
+      const response = await fetch(`${SERVER_HTTP_URL}/login/passkeys/begin-authentication`, {
         method: "GET",
       });
+
       const options = await response.json();
       console.log("loginOptions", options);
 
-      // let Authenticator sign challenge with stored pubKey (User Verification needed)
+      // let the Authenticator sign the challenge with device stored pubKey (User Verification needed)
       const asseResp = await startAuthentication(options.publicKey, autofill); // true for autofill // if false its not asking which passkey to use, is ok?
+      console.log("asseResp = ",asseResp)
 
       // post the response (signed challenge) to rp
-      const verificationResp = await fetch(`${SERVER_HTTP_URL}/passkeys`, {
+      const verificationResp = await fetch(`${SERVER_HTTP_URL}/login/passkeys/finish-authentication`, {
         method: "POST",
         body: JSON.stringify(asseResp),
       });
       console.log(await verificationResp.json());
-
       // TODO: check and handle verificationResp
     } catch (error) {
       console.log(error);
     }
   }
 
-  // async function handleCreateAccount() {
-  //   //create acc
-  //   //create pk
-  // }
+  async function handleCreateAccount() {
+    //create acc
+    //create pk
+  }
 
   // https://dribbble.com/shots/7757250-Sign-up-revamp
   return (
@@ -128,31 +129,31 @@ export const LoginBoard = () => {
             <h1>{t("LoginBoard.title")}</h1>
 
             <div className="login-board__passkey">
-              <button style={{margin: "40px"}} onClick={() => registerPasskey()}>
+              {/* <button style={{margin: "40px"}} onClick={() => registerPasskey()}>
                 Create new passkey
-              </button>
+              </button> */}
               <button onClick={() => loginWithPasskey(true)}>auth me</button>
 
-              {/* <TextInput
+              <TextInput
                 id="login-board__passkey"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                  if (e.key === "Enter") {
-                    handleCreateAccount();
-                  }
-                }}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                // onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                //   if (e.key === "Enter") {
+                //     handleCreateAccount();
+                //   }
+                // }}
                 name="username" // needs to be username
-                autoComplete="webauthn" //username email pw ?
-                placeholder="Email or Passkey"
-                aria-invalid={!email}
+                autoComplete="username webauthn"
+                placeholder="Username / Click to use passkey"
+                aria-invalid={!username}
                 loginType="passkeys"
                 actions={
                   <TextInputAction title={"Sign up with passkey"} onClick={() => handleCreateAccount()}>
                     Continue
                   </TextInputAction>
                 }
-              /> */}
+              />
             </div>
 
             <hr className="login-board__divider" data-label="or" />

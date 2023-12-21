@@ -1,4 +1,5 @@
 import {AvataaarProps} from "components/Avatar";
+import {Credential} from "../../types/credential";
 
 export const AuthAction = {
   SignIn: "scrumlr.io/signIn" as const,
@@ -7,11 +8,12 @@ export const AuthAction = {
 };
 
 export const AuthActionFactory = {
-  signIn: (id: string, name: string, avatar?: AvataaarProps) => ({
+  signIn: (id: string, name: string, avatar?: AvataaarProps, credentials?: Credential[]) => ({
     type: AuthAction.SignIn,
     id,
     name,
     avatar,
+    credentials,
   }),
 
   signOut: () => ({
