@@ -24,7 +24,6 @@ const PasskeySettings = () => {
       // modify to require residentKey = true
       // registrationOptions.publicKey.authenticatorSelection.requireResidentKey = true
 
-      console.log("test")
       // pass registration options to authenticator to create Passkey + user verification + sign challenge
       const authenticatorResponse = await startRegistration(await registrationOptions.publicKey);
       console.log("authenticatorResponse", authenticatorResponse);

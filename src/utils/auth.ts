@@ -4,6 +4,7 @@ import i18n from "i18next";
 import store from "store";
 import {Actions} from "store/action";
 import {SERVER_HTTP_URL} from "../config";
+import { startAuthentication } from "@simplewebauthn/browser";
 
 /**
  * Sign in anonymously.
@@ -37,7 +38,40 @@ const signInWithAuthProvider = async (authProvider: string, originURL: string) =
   window.location.href = `${SERVER_HTTP_URL}/login/${authProvider}?state=${encodeURIComponent(originURL)}`;
 };
 
+/**
+ * Sign in with a passkey.
+ *
+ * @param autofill determines if passkey is used via conditional-UI
+ *
+ * @returns Promise with user credentials on successful sign in, null otherwise.
+ */
+const signInWithPasskey = async (autofill: boolean) => {
+  try {
+    // get login options from my RP (challenge, ...)
+    const options = await API.getLoginOptions()
+    console.log("loginOptions", options);
+
+    // let the Authenticator sign the challenge with device stored pubKey (User Verification needed)
+    const assertionResp = await startAuthentication(options.publicKey, autofill); // if false its not asking which passkey to use, is ok?
+    console.log("assertionResp", assertionResp)
+
+    // post the response (signed challenge) from Authenticator to RP
+    const user = await API.verifyLogin(assertionResp) //return user and check status code instead of "login success"
+    console.log("verificationResp", user)
+
+    if (user) {
+      store.dispatch(Actions.signIn(user.id, user.name));
+    }
+    return true;
+    // throw new Error(`Could not sign in with passkey`);
+  } catch (error) {
+    console.log(error);
+    return null //?
+  }
+};
+
 export const Auth = {
   signInAnonymously,
   signInWithAuthProvider,
+  signInWithPasskey
 };

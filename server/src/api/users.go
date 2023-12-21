@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -140,13 +141,6 @@ func (s *Server) verifyRegistration(w http.ResponseWriter, r *http.Request) {
 func (s *Server) generateAuthenticationOptions(w http.ResponseWriter, r *http.Request) {
 	//TODO: logging
 
-	// userId := r.Context().Value("User").(uuid.UUID)
-	// user, err := s.users.Get(r.Context(), userId)
-	// if err != nil {
-	// 	common.Throw(w, r, err)
-	// 	return
-	// }
-
 	options, session, err := s.webAuthn.BeginDiscoverableLogin() //user muss credential(s) abfrage unterstützen
 	if err != nil {
 		// TODO: Handle Error and return.
@@ -159,90 +153,106 @@ func (s *Server) generateAuthenticationOptions(w http.ResponseWriter, r *http.Re
 	globalSession_Log = session
 
 	// return the options generated
-	// options.publicKey contain our registration options
 	render.Status(r, http.StatusOK)
 	render.Respond(w, r, options)
 }
 
 func (s *Server) verifyAuthentication(w http.ResponseWriter, r *http.Request) {
-	// userId := r.Context().Value("User").(uuid.UUID) // Continue
-	// user, err := s.users.Get(r.Context(), userId)
+
+	// get userhandle to identify user of the passed passkey
+	//can this be made shorter/simpler? Maybe get userhandle base64 string directly and decode it.
+	// parsedResponse, err := protocol.ParseCredentialRequestResponse(r)
 	// if err != nil {
-	// 	common.Throw(w, r, err)
+	// 	w.WriteHeader(http.StatusBadRequest)
 	// 	return
 	// }
 
-	// TODO: Put functionalities into service not in the handler here
-	//TODO: extract the rawID and userhandle from webauthn assertionResponse in body
-	// var assertionResponse struct {
-	// 	RawID      []byte `json:"rawId"`
-	// 	UserHandle []byte `json:"userHandle"`
-	// }
-
-	// if err := json.NewDecoder(r.Body).Decode(&assertionResponse); err != nil {
-	// 	// Handle JSON decoding error
-	// 	http.Error(w, "Error decoding JSON", http.StatusBadRequest)
+	// base64String := base64.StdEncoding.EncodeToString(parsedResponse.Response.UserHandle)
+	// decodedBytes, err := base64.StdEncoding.DecodeString(base64String)
+	// if err != nil {
+	// 	fmt.Println("Error decoding base64:", err)
 	// 	return
 	// }
+	// userIdString := string(decodedBytes)  //Refactor
+	// userId, _ := uuid.Parse(userIdString) //Refactor
+
+	//test Temp alternative
+	userId, _ := uuid.Parse("1c607741-bec1-4d97-b909-f988a453abdd")
+
+	//Get User of the assertionResponseRequest
+	user, err := s.users.Get(r.Context(), userId)
+	if err != nil {
+		common.Throw(w, r, err)
+		return
+	}
+	fmt.Print("Retrieved_user", user)
 
 	// TODO: Get the session data stored from the function above
-	session := *globalSession_Log //should have two different sessions? for reg and log?
+	session := *globalSession_Log //should have two different sessions? for reg and log? or just one which gets overwritten?
+	fmt.Print("session = ", session)
 
-	// get session to get challenge,
-	// get r to extract signature
-	// use publickey from db to (decrypt/Unsign) signature and match with challenge from session
-	credential, err := s.webAuthn.FinishDiscoverableLogin(s.myDiscoverableUserHandler,
+	// pass handler to retrieve correct user from db with matching credentialID and RawID
+	// pass session to get challenge,
+	// pass r to extract signature
+	// use publickey from db to (decrypt/Unsign) signature and match with challenge from passed session
+	credential, err := s.webAuthn.FinishDiscoverableLogin(s.discoverableUserHandler,
 		session,
 		r,
 	)
 	if err != nil {
-		// Handle Error and return.
+		fmt.Print("FinishDiscoverableLogin ERROR:  = ", err) // only modified at changes?
 		return
 	}
-	fmt.Print("updated credential------", credential)
+
+	//JWT
+	tokenString, err := s.auth.Sign(map[string]interface{}{"id": user.ID})
+	if err != nil {
+		// log.Errorw("unable to generate token string", "err", err)
+		fmt.Print("meeh")
+		common.Throw(w, r, common.InternalServerError)
+		return
+	}
+
+	fmt.Print("tokenString", tokenString)
+
+	cookie := http.Cookie{Name: "jwt", Value: tokenString, Path: "/", HttpOnly: true, MaxAge: math.MaxInt32}
+	common.SealCookie(r, &cookie)
+	http.SetCookie(w, &cookie)
 
 	// TODO: Handle credential.Authenticator.CloneWarning ??
 
+	// TODO:
 	// If login was successful, update the credential object
-	// Pseudocode to update the user credential.
 	// user.UpdateCredential(credential)
 	// datastore.SaveUser(user)
+	fmt.Print("updated credential = ", credential) // only modified at changes?
 
 	render.Status(r, http.StatusOK)
-	render.Respond(w, r, "Login Success")
+	render.Respond(w, r, user)
+	// render.Respond(w, r, "Login Success")
 }
 
-// CONTINUE: LOOK Blue Post-it
-// // TODO: Implement the DiscoverableUserHandler function
-// func (s *Server) myDiscoverableUserHandler(rawID, userHandle []byte) (*dto.User, error) {
-// 	// Perform a lookup in your data store to find the user based on rawID or userHandle
-// 	// Replace this with your actual logic to fetch the user from your data store.
+// Implementing the DiscoverableUserHandler interface
+func (s *Server) discoverableUserHandler(rawID, userHandle []byte) (webauthn.User, error) {
+	// Perform a lookup in your data store to find the user based on rawID or userHandle
+	// Replace this with your actual logic to fetch the user from your data store.
 
-// 	// CONTINUE
-// 	// find the user from RawID and UserHandle / which means RawID matches the ID of a Credential which is linked to a user
-// 	// and this user is also used to validate the response
-// 	// Platzhalterrisch inc.
-// 	uuidTempUserString := "1c607741-bec1-4d97-b909-f988a453abdd"
-// 	// Parse the string to obtain a UUID
-// 	parsedUUID, _ := uuid.Parse(uuidTempUserString)
-// 	user, _ := s.users.Get(context.Background(), parsedUUID)
+	// find the user from RawID and UserHandle / which means RawID matches the ID of a Credential which is linked to a user
+	// and this user is also used to validate the response
 
-// return user, nil
-// Example: Assume you have a function s.users.GetUserByRawID that retrieves a user by rawID.
-// user, err := s.users.GetUserByRawID(rawID)
-// if err != nil {
-// 	return User{}, err
-// }
+	// Example: Assume you have a function s.users.GetUserByRawID that retrieves a user by rawID.
+	// user, err := s.users.GetUserByRawID(rawID)
+	// if err != nil {
+	// 	return User{}, err
+	// }
 
-// Alternatively, you can use userHandle to fetch the user.
-// user, err := s.users.GetUserByUserHandle(userHandle)
-// if err != nil {
-//     return User{}, err
-// }
+	// Alternatively, you can use userHandle to fetch the user.
+	// user, err := s.users.GetUserByUserHandle(userHandle)
+	// if err != nil {
+	//     return User{}, err
+	// }
 
-// Implement the DiscoverableUserHandler interface
-func (s *Server) myDiscoverableUserHandler(rawID, userHandle []byte) (webauthn.User, error) {
-	// Find the user based on rawID or userHandle in your data store
+	// TEMPORARY SOLUTION
 	uuidTempUserString := "1c607741-bec1-4d97-b909-f988a453abdd"
 	// Parse the string to obtain a UUID
 	parsedUUID, _ := uuid.Parse(uuidTempUserString)

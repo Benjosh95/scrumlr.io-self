@@ -120,7 +120,3 @@ func (s *Server) verifyAuthProviderCallback(w http.ResponseWriter, r *http.Reque
 	}
 	w.WriteHeader(http.StatusSeeOther)
 }
-
-// func (s *Server) SignUpInWithPasskey() { ?
-
-// }

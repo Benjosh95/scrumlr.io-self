@@ -4,7 +4,7 @@ export interface Auth {
   id: string;
   name: string;
   avatar?: AvataaarProps;
-  credentials?: Credential[]; // create type
+  credentials?: Credential[]; 
 }
 
 export interface AuthState {
