@@ -1,3 +1,4 @@
+import { startRegistration } from "@simplewebauthn/browser";
 import {SERVER_HTTP_URL} from "../config";
 import {Auth} from "../types/auth";
 import {AuthenticationResponseJSON} from "@simplewebauthn/typescript-types"
@@ -45,6 +46,50 @@ export const AuthAPI = {
     } catch (error) {
       throw new Error(`unable to sign in with error: ${error}`);
     }
+  },
+
+  /**
+   * Registers a new Passkey for a user 
+   * 
+   * @returns all Credentials of the user, including the new one
+   */
+  registerNewPasskey: async () => {
+    try {
+      // get registration options from server
+      let response = await fetch(`${SERVER_HTTP_URL}/user/passkeys/begin-registration`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if(response.status !== 200) {
+        throw new Error(`register passkey request resulted in response status ${response.status}`);
+      }
+      const registrationOptions = await response.json();
+      console.log("registrationOptions", registrationOptions);
+      // modify to require residentKey = true
+      // registrationOptions.publicKey.authenticatorSelection.requireResidentKey = true
+
+      // pass registration options to authenticator to create Passkey + user verification + sign challenge
+      const authenticatorResponse = await startRegistration(await registrationOptions.publicKey);
+      console.log("authenticatorResponse", authenticatorResponse);
+
+      // pass signed Challenge + pubkey to Server
+      response = await fetch(`${SERVER_HTTP_URL}/user/passkeys/finish-registration`, {
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify(authenticatorResponse),
+      });
+
+      if(response.status === 200){
+        const verificationResponse = await response.json();
+        console.log("verificationResponse", verificationResponse);
+        return verificationResponse;
+      }
+      throw new Error(`register passkey request resulted in response status ${response.status}`);
+    } catch (error) {
+      throw new Error(`unable to register new passkey: ${error}`);
+    }
+    return undefined;
   },
 
   /**

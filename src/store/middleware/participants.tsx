@@ -50,7 +50,27 @@ export const passParticipantsMiddleware = (stateAPI: MiddlewareAPI<Dispatch, App
   }
 
   if (action.type === Action.EditSelf) {
-// TODO Overwriting/deleting Credentials CONTINUE
+    // prevent passkey credentials from beeing overwritten. (Auth/participants.self/others)
+    if(!action.editCredentials){
+      API.getCurrentUser().then((user) => {
+        const updatedAction = {
+          ...action,
+          user: {
+            ...action.user,
+            credentials: user?.credentials
+          }
+        }
+        API.editUser(updatedAction.user, action.editCredentials).catch(() => {
+          Toast.error({
+            title: i18n.t("Error.editSelf"),
+            buttons: [i18n.t("Error.retry")],
+            firstButtonOnClick: () => store.dispatch(Actions.editSelf(action.user, action.editCredentials)),
+          });
+        });
+      })
+      return
+    }
+
     API.editUser(action.user, action.editCredentials).catch(() => {
       Toast.error({
         title: i18n.t("Error.editSelf"),

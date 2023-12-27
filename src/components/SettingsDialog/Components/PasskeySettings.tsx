@@ -1,59 +1,64 @@
 import {useState} from "react";
-import {SERVER_HTTP_URL} from "config";
-import {startRegistration} from "@simplewebauthn/browser";
 import {SettingsAccordion} from "./SettingsAccordion";
-import { useAppSelector } from "store";
+import store, {useAppSelector} from "store";
+import {Auth} from "utils/auth";
+import {Toast} from "utils/Toast";
+import {useTranslation} from "react-i18next";
+import { Actions } from "store/action";
 
 const PasskeySettings = () => {
+  const {t} = useTranslation();
   const [openPasskeyAccordion, setOpenPasskeyAccordion] = useState(false);
 
   const state = useAppSelector((applicationState) => ({
     user: applicationState.auth.user,
   }));
-  
-  //TODO: Refactor into middleware?
-  async function registerPasskey() {
+
+  async function handlePasskeyRegistration() {
     try {
-      // get registration options from server
-      let response = await fetch(`${SERVER_HTTP_URL}/user/passkeys/begin-registration`, {
-        method: "GET",
-        credentials: "include",
-      });
-      const registrationOptions = await response.json();
-      console.log("registrationOptions", registrationOptions);
-      // modify to require residentKey = true
-      // registrationOptions.publicKey.authenticatorSelection.requireResidentKey = true
+      const success = await Auth.registerNewPasskey();
 
-      // pass registration options to authenticator to create Passkey + user verification + sign challenge
-      const authenticatorResponse = await startRegistration(await registrationOptions.publicKey);
-      console.log("authenticatorResponse", authenticatorResponse);
-
-      // pass signed Challenge + pubkey to Server
-      response = await fetch(`${SERVER_HTTP_URL}/user/passkeys/finish-registration`, {
-        method: "POST",
-        credentials: "include",
-        body: JSON.stringify(authenticatorResponse),
-      });
-
-      const verificationResponse = await response.json();
-      console.log("verificationResponse", verificationResponse);
+      //show success anyhow?
+      if (success) {
+        console.log("successfully registered");
+      }
     } catch (error) {
-      console.error(error);
+      Toast.error({title: t("Passkey could not be registered")});
     }
   }
 
+  async function handlePasskeyDeletion(id: string) {
+    try {
+        const updatedCredentials = state.user!.credentials!.filter((c) => c.ID !== id) 
+        store.dispatch(Actions.editSelf({...state.user!, credentials: updatedCredentials}, true))
+    } catch (error) {
+      Toast.error({title: t("Passkey could not be deleted")});
+    }
+  }  
+  async function handlePasskeyRenaming() {
+    try {
+      console.log("trigger renaming")
+    } catch (error) {
+      Toast.error({title: t("Passkey could not be renamed")});
+    }
+  }
+  
   return (
     <div className="profile-settings__passkey">
       <SettingsAccordion isOpen={openPasskeyAccordion} onClick={() => setOpenPasskeyAccordion((prevState) => !prevState)} label="Passkeys verwalten">
-        {state.user?.credentials?.map((c) => {
-          return <ul>{c.ID}</ul>
+        {state.user?.credentials?.map((credential, idx) => {
+          return (
+            <ul key={credential.ID}>
+              {idx + 1} {credential.ID}
+              <button onClick={() => handlePasskeyDeletion(credential.ID)}>Delete</button>
+              <button onClick={() => handlePasskeyRenaming()}>Rename</button>
+            </ul>
+          );
+          //rename, delete, lastused at createdat
         })}
-        {/* <ul>Passkey-49dt39fk34</ul>
-        <p>info</p>
-        <p>rename</p>
-        <p>delete</p>
-        <ul>Passkey-49dt39fk34</ul> */}
-        <button onClick={() => registerPasskey()}>+ Create a Passkey</button>
+        <button onClick={() => handlePasskeyRegistration()}>+ Create a Passkey</button>
+        {/* <button onClick={() => renamePasskey()}>? Rename</button> */}
+        {/* <button onClick={() => deletePasskey()}>! Delete</button> */}
       </SettingsAccordion>
     </div>
   );

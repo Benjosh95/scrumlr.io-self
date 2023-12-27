@@ -9,7 +9,7 @@ export const participantsReducer = (state: ParticipantsState = null, action: Red
       const ownUserId = action.context.user;
 
       const self = action.participants.find((p) => p.user.id === ownUserId)!;
-      const others = action.participants.filter((p) => p.user.id !== ownUserId);
+      const others = action.participants.filter((p) => p.user.id !== ownUserId); // Continue!??!? p.user.credentials == null
       const focusInitiator = null;
 
       return {
@@ -50,6 +50,9 @@ export const participantsReducer = (state: ParticipantsState = null, action: Red
     }
 
     case Action.EditSelf: {
+      if(action.editCredentials){
+        return state
+      }
       return {
         ...state!,
         self: {

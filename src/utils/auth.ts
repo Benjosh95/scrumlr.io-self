@@ -60,18 +60,37 @@ const signInWithPasskey = async (autofill: boolean) => {
     console.log("verificationResp", user)
 
     if (user) {
-      store.dispatch(Actions.signIn(user.id, user.name));
+      store.dispatch(Actions.signIn(user.id, user.name, undefined, user.credentials));
     }
     return true;
     // throw new Error(`Could not sign in with passkey`);
   } catch (error) {
     console.log(error);
-    return null //?
+    return null
   }
 };
+
+const registerNewPasskey = async () => {
+  try {
+    const credentials = await API.registerNewPasskey();
+    const user = await API.getCurrentUser();
+    if(credentials && user) {
+      //CONTINUE
+      //alle neuen Credentials kommen, werden aber nicht korrekt bei editself gesetzt anscheinend
+      console.log("credentials = ", credentials);
+      store.dispatch(Actions.editSelf({...user, credentials: credentials}, true));
+      return true;
+    }
+    return undefined;
+  } catch (error) {
+    console.error(error);
+    return null //better undefined?
+  }
+}
 
 export const Auth = {
   signInAnonymously,
   signInWithAuthProvider,
+  registerNewPasskey,
   signInWithPasskey
 };
