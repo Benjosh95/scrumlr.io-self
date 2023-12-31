@@ -104,6 +104,6 @@ type BoardReactions interface {
 }
 
 type Passkeys interface {
-	CreateSession(ctx context.Context, session *webauthn.SessionData) (string, error) //use dto instead of webauthn.sessionData?
-	GetSession(ctx context.Context, userId uuid.UUID) (*webauthn.SessionData, error)  //use same dto instead of database.passkeysession?
+	CreateSession(ctx context.Context, session *webauthn.SessionData) error          //use dto instead of webauthn.sessionData? //Better also return created Session instead of just the err
+	GetSession(ctx context.Context, userId uuid.UUID) (*webauthn.SessionData, error) //use same dto instead of database.passkeysession?
 }

@@ -11,11 +11,9 @@ import (
 )
 
 type PasskeySession struct {
-	bun.BaseModel `bun:"table:passkey_sessions"`
-	ID            uuid.UUID
-	User          uuid.UUID
-	Challenge     string
-	// AllowedCredentialIDs [][]byte
+	bun.BaseModel        `bun:"table:passkey_sessions"`
+	User                 uuid.UUID
+	Challenge            string
 	AllowedCredentialIDs [][]byte
 	Expires              time.Time
 	UserVerification     protocol.UserVerificationRequirement
@@ -24,10 +22,9 @@ type PasskeySession struct {
 }
 
 type PasskeySessionInsert struct {
-	bun.BaseModel `bun:"table:passkey_sessions"`
-	User          uuid.UUID
-	Challenge     string
-	// AllowedCredentialIDs [][]byte
+	bun.BaseModel        `bun:"table:passkey_sessions"`
+	User                 uuid.UUID
+	Challenge            string
 	AllowedCredentialIDs [][]byte
 	Expires              time.Time
 	UserVerification     protocol.UserVerificationRequirement
@@ -41,7 +38,6 @@ func (d *Database) GetPasskeySession(userId uuid.UUID) (PasskeySession, error) {
 }
 
 func (d *Database) CreatePasskeySession(insert PasskeySessionInsert) (PasskeySession, error) {
-	// Declare a variable to store the created or updated PasskeySession
 	var createdSession PasskeySession
 
 	// Check if a PasskeySession with the given user ID already exists
@@ -64,6 +60,5 @@ func (d *Database) CreatePasskeySession(insert PasskeySessionInsert) (PasskeySes
 		Returning("*"). // Return all columns of the inserted record
 		Exec(common.ContextWithValues(context.Background(), "Database", d), &createdSession)
 
-	// Return the created PasskeySession and any error that occurred
 	return createdSession, err
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"scrumlr.io/server/common"
@@ -22,7 +21,7 @@ type User struct {
 	Name          string
 	AccountType   types.AccountType
 	KeyMigration  *time.Time
-	Credentials   []webauthn.Credential `bun:"type:jsonb,nullzero"`
+	Credentials   []types.ExtendedCredential `bun:"type:jsonb,nullzero"`
 	CreatedAt     time.Time
 }
 
@@ -37,8 +36,8 @@ type UserUpdate struct {
 	bun.BaseModel `bun:"table:users"`
 	ID            uuid.UUID `bun:"type:uuid"`
 	Name          string
-	Avatar        *types.Avatar         `bun:"type:jsonb,nullzero"`
-	Credentials   []webauthn.Credential `bun:"type:jsonb,nullzero"`
+	Avatar        *types.Avatar              `bun:"type:jsonb,nullzero"`
+	Credentials   []types.ExtendedCredential `bun:"type:jsonb,nullzero"`
 }
 
 // CreateAnonymousUser creates a new anonymous user by the specified name

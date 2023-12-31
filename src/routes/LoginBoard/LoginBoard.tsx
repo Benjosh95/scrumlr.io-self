@@ -58,53 +58,16 @@ export const LoginBoard = () => {
   async function handlePasskeyLogin(autofill: boolean = true) {
     if(true) { //TODO: terms accepted?
       try {
+        //TODO currently reloading page quickly after failing signin but shouldnt have to reload page.
+        // This reloading triggers new load of loginoptions. good
+        // But also refreshes page which takes some milliseconds, not needed. looks/feels wrong. not good 
         await Auth.signInWithPasskey(autofill);
         navigate(redirectPath);
       } catch (err) {
         Toast.error({title: t("LoginBoard.errorOnRedirect")});
       }
     }
-  }
-
-  // async function loginWithPasskey(autofill = true) {
-  //   try {
-  //     // get login options from my RP (challenge, ...)
-  //     const response = await fetch(`${SERVER_HTTP_URL}/login/passkeys/begin-authentication`, {
-  //       method: "GET",
-  //     });
-  //     const options = await response.json();
-  //     console.log("loginOptions", options);
-
-  //     // let the Authenticator sign the challenge with device stored pubKey (User Verification needed)
-  //     const asseResp = await startAuthentication(options.publicKey, autofill); // true for autofill // if false its not asking which passkey to use, is ok?
-  //     console.log("asseResp = ",asseResp)
-
-  //     // post the response (signed challenge) to rp
-  //     const verificationResp = await fetch(`${SERVER_HTTP_URL}/login/passkeys/finish-authentication`, {
-  //       method: "POST",
-  //       body: JSON.stringify(asseResp),
-  //     });
-
-  //     if(verificationResp.ok) {
-  //       const responseBody = await verificationResp.json();
-  //       console.log(responseBody);
-
-  //       const verified = responseBody === "Login Success";
-
-  //       //CONTINUE TO REDIRED TO RIGHT URL Use Navigate()!!
-  //       // its blocking me from getting to new Maybe cause of the missing jwt?
-  //       if (true && verified) { //termsaccepted
-  //          console.log(`${window.location.origin}/new`);
-  //          window.location.href = `${window.location.origin}/new`;
-  //           // navigate(`${window.location.origin}/new`, {replace: true});
-  //       }
-  //     } else {
-  //       //handle
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
+  }    
 
   // https://dribbble.com/shots/7757250-Sign-up-revamp
   return (

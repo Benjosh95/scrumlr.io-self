@@ -4,7 +4,7 @@ import i18n from "i18next";
 import store from "store";
 import {Actions} from "store/action";
 import {SERVER_HTTP_URL} from "../config";
-import { startAuthentication } from "@simplewebauthn/browser";
+import {startAuthentication} from "@simplewebauthn/browser";
 
 /**
  * Sign in anonymously.
@@ -48,25 +48,26 @@ const signInWithAuthProvider = async (authProvider: string, originURL: string) =
 const signInWithPasskey = async (autofill: boolean) => {
   try {
     // get login options from my RP (challenge, ...)
-    const options = await API.getLoginOptions()
+    const options = await API.getLoginOptions();
     console.log("loginOptions", options);
 
-    // let the Authenticator sign the challenge with device stored pubKey (User Verification needed)
-    const assertionResp = await startAuthentication(options.publicKey, autofill); // if false its not asking which passkey to use, is ok?
-    console.log("assertionResp", assertionResp)
+    // let the (platform-)Authenticator sign the challenge with on device stored pubKey
+    const assertionResponse = await startAuthentication(options.publicKey, autofill); // This function triggers "User Verification" if false its not asking which passkey to use, is ok?
+    console.log("assertionResponse", assertionResponse);
 
-    // post the response (signed challenge) from Authenticator to RP
-    const user = await API.verifyLogin(assertionResp) //return user and check status code instead of "login success"
-    console.log("verificationResp", user)
+    // take assertionResponse (signed challenge, ...) from Authenticator and send it to  to RP
+    const user = await API.verifyLogin(assertionResponse); //return user and check status code instead of "login success"
+    console.log("verificationResp", user);
 
     if (user) {
       store.dispatch(Actions.signIn(user.id, user.name, undefined, user.credentials));
+      return true;
     }
-    return true;
-    // throw new Error(`Could not sign in with passkey`);
+
+    throw new Error(`Could not sign in with passkey`);
   } catch (error) {
-    console.log(error);
-    return null
+    Toast.error({title: i18n.t("Toast.authenticationError")});
+    return null;
   }
 };
 
@@ -74,23 +75,19 @@ const registerNewPasskey = async () => {
   try {
     const credentials = await API.registerNewPasskey();
     const user = await API.getCurrentUser();
-    if(credentials && user) {
-      //CONTINUE
-      //alle neuen Credentials kommen, werden aber nicht korrekt bei editself gesetzt anscheinend
-      console.log("credentials = ", credentials);
-      store.dispatch(Actions.editSelf({...user, credentials: credentials}, true));
-      return true;
+    if (!credentials || !user) {
+      throw new Error();
     }
-    return undefined;
+    store.dispatch(Actions.editSelf({...user, credentials: credentials}, true));
+    Toast.success({title: "Successfully registered new passkey"});
   } catch (error) {
-    console.error(error);
-    return null //better undefined?
+    Toast.error({title: "Could not register new passkey"});
   }
-}
+};
 
 export const Auth = {
   signInAnonymously,
   signInWithAuthProvider,
+  signInWithPasskey,
   registerNewPasskey,
-  signInWithPasskey
 };

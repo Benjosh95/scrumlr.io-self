@@ -87,9 +87,10 @@ export const AuthAPI = {
       }
       throw new Error(`register passkey request resulted in response status ${response.status}`);
     } catch (error) {
+      //???
       throw new Error(`unable to register new passkey: ${error}`);
+      return undefined;
     }
-    return undefined;
   },
 
   /**

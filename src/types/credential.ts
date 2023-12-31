@@ -5,6 +5,9 @@ export interface Credential {
     transport: string[]; // Use 'usb' | 'nfc' | 'ble' | 'internal' | 'platform' as appropriate
     flags: CredentialFlags;
     authenticator: Authenticator;
+    displayName?: string;
+    lastUsedAt: Date;
+    createdAt: Date;
   }
   
   export interface CredentialFlags {
