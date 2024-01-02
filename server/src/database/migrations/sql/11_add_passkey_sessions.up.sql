@@ -1,6 +1,7 @@
 CREATE TABLE passkey_sessions
 (
-    "user"               uuid        NOT NULL REFERENCES users ON DELETE CASCADE,
+    id                   uuid        DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+    "user"               uuid        ,
     "challenge"          varchar(64) NOT NULL,
     "user_verification"  varchar(32) NOT NULL,
     "expires"            timestamptz NOT NULL,

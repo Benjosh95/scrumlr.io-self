@@ -12,6 +12,7 @@ import (
 
 type PasskeySession struct {
 	bun.BaseModel        `bun:"table:passkey_sessions"`
+	ID                   uuid.UUID
 	User                 uuid.UUID
 	Challenge            string
 	AllowedCredentialIDs [][]byte
@@ -31,18 +32,26 @@ type PasskeySessionInsert struct {
 	Extensions           protocol.AuthenticationExtensions
 }
 
-func (d *Database) GetPasskeySession(userId uuid.UUID) (PasskeySession, error) {
+func (d *Database) GetSessionByUserId(userId uuid.UUID) (PasskeySession, error) {
 	var passkeySession PasskeySession
 	err := d.db.NewSelect().Model(&passkeySession).Where("\"user\" = ?", userId).Scan(context.Background())
 	return passkeySession, err
 }
 
-func (d *Database) CreatePasskeySession(insert PasskeySessionInsert) (PasskeySession, error) {
+func (d *Database) GetSessionById(id uuid.UUID) (PasskeySession, error) {
+	var passkeySession PasskeySession
+	err := d.db.NewSelect().Model(&passkeySession).Where("id = ?", id).Scan(context.Background(), &passkeySession)
+	return passkeySession, err
+}
+
+func (d *Database) CreateSession(insert PasskeySessionInsert) (PasskeySession, error) {
 	var createdSession PasskeySession
 
 	// Check if a PasskeySession with the given user ID already exists
-	_, err := d.GetPasskeySession(insert.User)
-	if err == nil {
+	session, err := d.GetSessionByUserId(insert.User)
+	isNullUUID := session.User == uuid.Nil
+
+	if err == nil && !isNullUUID {
 		// PasskeySession with the given user ID already exists, update it
 		_, err := d.db.NewUpdate().
 			Model(&insert).

@@ -59,9 +59,14 @@ func (s *Server) signInAnonymously(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie := http.Cookie{Name: "jwt", Value: tokenString, Path: "/", HttpOnly: true, MaxAge: math.MaxInt32}
-	common.SealCookie(r, &cookie)
-	http.SetCookie(w, &cookie)
+	jwtCookie := http.Cookie{Name: "jwt", Value: tokenString, Path: "/", HttpOnly: true, MaxAge: math.MaxInt32}
+	common.SealCookie(r, &jwtCookie)
+	http.SetCookie(w, &jwtCookie)
+
+	// removes the sessionId from cookie
+	deletedSessionCookie := http.Cookie{Name: "sessionId", Value: "deleted", Path: "/", MaxAge: -1, Expires: time.Unix(0, 0)}
+	common.SealCookie(r, &deletedSessionCookie)
+	http.SetCookie(w, &deletedSessionCookie)
 
 	render.Status(r, http.StatusCreated)
 	render.Respond(w, r, user)
@@ -134,9 +139,6 @@ func (s *Server) verifyAuthProviderCallback(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusSeeOther)
 }
 
-// hold login session in  memory
-var globalSession_Log *webauthn.SessionData
-
 func (s *Server) generateRegistrationOptions(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromRequest(r)
 
@@ -177,7 +179,7 @@ func (s *Server) generateRegistrationOptions(w http.ResponseWriter, r *http.Requ
 	}
 
 	// stores session data for verification
-	err = s.passkeys.CreateSession(r.Context(), session)
+	_, err = s.passkeys.CreateSession(r.Context(), session)
 	if err != nil {
 		log.Errorw("failed to create passkey session", "err", err)
 		common.Throw(w, r, common.InternalServerError)
@@ -199,7 +201,7 @@ func (s *Server) verifyRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// gets the session data for verification
-	session, err := s.passkeys.GetSession(r.Context(), userId)
+	session, err := s.passkeys.GetSessionByUserId(r.Context(), userId)
 	if err != nil {
 		log.Errorw("failed to get passkey session", "err", err)
 		common.Throw(w, r, common.InternalServerError)
@@ -243,8 +245,17 @@ func (s *Server) generateAuthenticationOptions(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// TODO: Auth Session wird im hauptspeicher gehalten. Gibt es alternativen oder Ok so?
-	globalSession_Log = session
+	// create session with a "empty/nil" userId
+	createdSessionId, err := s.passkeys.CreateSession(r.Context(), session)
+	if err != nil {
+		log.Errorw("failed to create a session", "err", err)
+		common.Throw(w, r, common.InternalServerError)
+	}
+
+	// Set sessionId in Cookie to get challenge when logging in
+	cookie := http.Cookie{Name: "sessionId", Value: createdSessionId.String(), Path: "/", HttpOnly: true, MaxAge: math.MaxInt32}
+	common.SealCookie(r, &cookie)
+	http.SetCookie(w, &cookie)
 
 	render.JSON(w, r, options)
 }
@@ -253,7 +264,7 @@ func (s *Server) verifyAuthentication(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromRequest(r)
 
 	// https://blog.flexicondev.com/read-go-http-request-body-multiple-times
-	// reading the body and assigning it back allows multiple reads of request.body.
+	// reading the request body and assigning it back allows multiple reads of request.body.
 	// (r.body of type io.ReadCloser can normaly be read only once)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -280,23 +291,42 @@ func (s *Server) verifyAuthentication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Todo: Muss im Hauptspeicher gehalten werden? -> NOPE muss über sessionID gelöst werden
-	session := *globalSession_Log
-	// r.Cookie()
+	// get sessionId from Cookie -> session -> challenge to authenticate user
+	sessionCookie, err := r.Cookie("sessionId")
+	if err != nil {
+		log.Errorw("failed to get sessionId from cookie", "err", err)
+		common.Throw(w, r, common.InternalServerError)
+		return
+	}
+
+	sessionId, err := uuid.Parse(sessionCookie.Value)
+	if err != nil {
+		log.Errorw("failed to parse sessionId string to uuid", "err", err)
+		common.Throw(w, r, common.InternalServerError)
+		return
+	}
+
+	session, _ := s.passkeys.GetSessionById(r.Context(), sessionId)
+	if err != nil {
+		log.Errorw("failed to get get session by Id", "err", err)
+		common.Throw(w, r, common.InternalServerError)
+		return
+	}
+	// ...
+	session.UserID = nil
 
 	// pass handler which is retrieving correct user from db by userHandle or rawId
 	// pass session to extract challenge,
 	// pass r to extract signature from r.body.response.signature
 	// get and use publickey from db to (decrypt/Unsign) signature and match with challenge from passed session
 	credential, err := s.webAuthn.FinishDiscoverableLogin(s.discoverableUserHandler,
-		session,
+		*session,
 		r,
 	)
 
-	// Todo: can be done smarter
+	// Todo: errorhandling can be done smarter
 	if err != nil {
 		log.Errorw("failed to finish login", "err", err)
-
 		switch err.Error() {
 		case "Unable to find the credential for the returned credential ID":
 			common.Throw(w, r, common.NotFoundError)
@@ -313,10 +343,15 @@ func (s *Server) verifyAuthentication(w http.ResponseWriter, r *http.Request) {
 		common.Throw(w, r, common.InternalServerError)
 		return
 	}
-	// sets the jwt
-	cookie := http.Cookie{Name: "jwt", Value: tokenString, Path: "/", HttpOnly: true, MaxAge: math.MaxInt32}
-	common.SealCookie(r, &cookie)
-	http.SetCookie(w, &cookie)
+	// sets the jwt in cookie
+	jwtCookie := http.Cookie{Name: "jwt", Value: tokenString, Path: "/", HttpOnly: true, MaxAge: math.MaxInt32}
+	common.SealCookie(r, &jwtCookie)
+	http.SetCookie(w, &jwtCookie)
+
+	// removes the sessionId from cookie
+	deletedSessionCookie := http.Cookie{Name: "sessionId", Value: "deleted", Path: "/", MaxAge: -1, Expires: time.Unix(0, 0)}
+	common.SealCookie(r, &deletedSessionCookie)
+	http.SetCookie(w, &deletedSessionCookie)
 
 	// TODO: Handle credential.Authenticator.CloneWarning ??
 
