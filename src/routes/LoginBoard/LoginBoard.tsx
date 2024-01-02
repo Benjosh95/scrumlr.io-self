@@ -9,7 +9,7 @@ import {useLocation} from "react-router";
 import {HeroIllustration} from "components/HeroIllustration";
 import {ScrumlrLogo} from "components/ScrumlrLogo";
 import {ReactComponent as RefreshIcon} from "assets/icon-refresh.svg";
-import {ReactComponent as KeyIcon} from "assets/icon-key.svg";
+import {ReactComponent as PasskeyIcon} from "assets/icon-passkey.svg";
 import "./LoginBoard.scss";
 import {TextInputAction} from "components/TextInputAction";
 import {Button} from "components/Button";
@@ -27,7 +27,6 @@ export const LoginBoard = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState(getRandomName());
   const [termsAccepted, setTermsAccepted] = useState(!SHOW_LEGAL_DOCUMENTS);
   const [submitted, setSubmitted] = useState(false);
@@ -38,7 +37,7 @@ export const LoginBoard = () => {
   }
 
   useEffect(() => {
-    handlePasskeyLogin(true) //rename to startLogin
+    handlePasskeyLogin();
   }, []);
 
   // anonymous sign in and redirection to board path that is in history
@@ -54,20 +53,25 @@ export const LoginBoard = () => {
     setSubmitted(true);
   }
 
-  // passkey sign in ((and redirection to board path that is in history))
-  async function handlePasskeyLogin(autofill: boolean = true) {
-    if(true) { //TODO: terms accepted?
-      try {
-        //TODO currently reloading page quickly after failing signin but shouldnt have to reload page.
-        // This reloading triggers new load of loginoptions. good
-        // But also refreshes page which takes some milliseconds, not needed. looks/feels wrong. not good 
-        await Auth.signInWithPasskey(autofill);
-        navigate(redirectPath);
-      } catch (err) {
-        Toast.error({title: t("LoginBoard.errorOnRedirect")});
-      }
+  // passkey sign in and redirection to board path that is in history
+  async function handlePasskeyLogin(autofill: boolean = true, termsAccepted: boolean = true) {
+    // TODO: require agb-checked for autofill => problem... because checking for agb loses autofill option
+    if(!termsAccepted) {
+      setSubmitted(true);
+      return;
     }
-  }    
+      try {
+        // TODO: currently reloading page quickly after failing signin but shouldnt have to reload page.
+        // This reloading triggers new load of loginoptions. good
+        // But also refreshes page which takes some milliseconds, not needed. looks/feels wrong. not good
+        const isLoggedIn = await Auth.signInWithPasskey(autofill);
+        if (isLoggedIn) {
+          navigate(redirectPath);
+        }
+      } catch (err) {
+        Toast.error({title: t("Toast.authenticationError")});
+      }
+  }
 
   // https://dribbble.com/shots/7757250-Sign-up-revamp
   return (
@@ -81,39 +85,14 @@ export const LoginBoard = () => {
 
             <h1>{t("LoginBoard.title")}</h1>
 
-            <div className="login-board__passkey">
-              <TextInput
-                id="login-board__passkey"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                // onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                //   if (e.key === "Enter") {
-                //     handleCreateAccount();
-                //   }
-                // }}
-                name="username" // needs to be username
-                autoComplete="username webauthn"
-                placeholder="Username / Click to use passkey"
-                aria-invalid={!username}
-                loginType="passkeys"
-                actions={
-                  <TextInputAction title={"Sign up with passkey"} onClick={() => console.log("handleCreateFunctionality")}>
-                    Continue
-                  </TextInputAction>
-                }
-              />
-            </div>
-
-            <hr className="login-board__divider" data-label="or" />
-
-            <Button className="login-board__passkey-button" rightIcon={<KeyIcon />} onClick={() => handlePasskeyLogin(false)}>
-              Sign in with a passkey
-            </Button>
-
-            <hr className="login-board__divider" data-label="or" />
-
             <LoginProviders originURL={`${window.location.origin}${redirectPath}`} />
 
+            <hr className="login-board__divider" data-label="or" />
+
+            <Button className="login-board__passkey-button" leftIcon={<PasskeyIcon />} onClick={() => handlePasskeyLogin(false, termsAccepted)}>
+              Sign in with a passkey
+            </Button>
+            
             <hr className="login-board__divider" data-label="or" />
 
             <fieldset className="login-board__fieldset">
@@ -123,6 +102,8 @@ export const LoginBoard = () => {
                 <TextInputLabel label={t("LoginBoard.username")} htmlFor="login-board__username" />
                 <TextInput
                   id="login-board__username"
+                  name="username"
+                  autoComplete="username webauthn"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {

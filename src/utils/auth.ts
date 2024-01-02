@@ -43,7 +43,7 @@ const signInWithAuthProvider = async (authProvider: string, originURL: string) =
  *
  * @param autofill determines if passkey is used via conditional-UI
  *
- * @returns Promise with user credentials on successful sign in, null otherwise.
+ * @returns Promise with user (credentials) on successful sign in, null otherwise.
  */
 const signInWithPasskey = async (autofill: boolean) => {
   try {
@@ -56,7 +56,7 @@ const signInWithPasskey = async (autofill: boolean) => {
     console.log("assertionResponse", assertionResponse);
 
     // take assertionResponse (signed challenge, ...) from Authenticator and send it to  to RP
-    const user = await API.verifyLogin(assertionResponse); //return user and check status code instead of "login success"
+    const user = await API.verifyLogin(assertionResponse);
     console.log("verificationResp", user);
 
     if (user) {
@@ -64,10 +64,23 @@ const signInWithPasskey = async (autofill: boolean) => {
       return true;
     }
 
-    throw new Error(`Could not sign in with passkey`);
+    throw new Error();
   } catch (error) {
-    Toast.error({title: i18n.t("Toast.authenticationError")});
-    return null;
+    if(!(error instanceof Error)) {
+      return;
+    }
+    if (error.message.includes("Could not find the selected credential")) {
+      Toast.error({title: "This Passkey cannot be used anymore."});
+      return;
+    }
+    if (error.message.includes("Authentication ceremony was sent an abort signal")) {
+      return;
+    }
+    if (error.message.includes("The operation either timed out or was not allowed")) {
+      return;
+    }
+
+    throw new Error();
   }
 };
 
@@ -81,6 +94,10 @@ const registerNewPasskey = async () => {
     store.dispatch(Actions.editSelf({...user, credentials: credentials}, true));
     Toast.success({title: "Successfully registered new passkey"});
   } catch (error) {
+    if (error instanceof Error && error.message.includes("InvalidStateError")) {
+      Toast.error({title: "You've already registered a passkey for this account and device"});
+      return;
+    }
     Toast.error({title: "Could not register new passkey"});
   }
 };

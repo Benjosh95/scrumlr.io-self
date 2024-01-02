@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"strings"
@@ -251,104 +252,87 @@ func (s *Server) generateAuthenticationOptions(w http.ResponseWriter, r *http.Re
 func (s *Server) verifyAuthentication(w http.ResponseWriter, r *http.Request) {
 	log := logger.FromRequest(r)
 
-	// get userhandle to identify user of the passed passkey
-	// can this be made shorter/simpler? Maybe get userhandle base64 string directly and decode it.
-	// parsedResponse, err := protocol.ParseCredentialRequestResponse(r)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-	// fmt.Print("parsedResponse of r = ", parsedResponse.Response)
-	// base64String := base64.StdEncoding.EncodeToString(parsedResponse.Response.UserHandle)
-	// decodedBytes, err := base64.StdEncoding.DecodeString(base64String)
-	// if err != nil {
-	// 	fmt.Println("Error decoding base64:", err)
-	// 	return
-	// }
-	// userIdString := string(decodedBytes)  //Refactor
-	// userId, _ := uuid.Parse(userIdString) //Refactor
+	// https://blog.flexicondev.com/read-go-http-request-body-multiple-times
+	// reading the body and assigning it back allows multiple reads of request.body.
+	// (r.body of type io.ReadCloser can normaly be read only once)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	//test Temp alternative
-	//CONTINUE userid ist vom Userhandle zu entnehmen und nicht hardcoded wie hier
-	//Beim extraheieren vom userhandle und convertieren zwischen []byte, base64 und uuid
-	//dabei gab es fehler die sich aber erst im r http.Request bei der finishdiscoverableLogin function gezeigt haben.
-	//vermutlich beim Code hierüber irg was anders machen, weil so hardcoded funktioniert es.
+	parsedResponse, err := protocol.ParseCredentialRequestResponseBody(r.Body)
+	if err != nil {
+		log.Errorw("failed to parse assertion response", "err", err)
+		common.Throw(w, r, common.InternalServerError)
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	// var requestBody AuthVerificationRequest
-	// if err := render.Decode(r, &requestBody); err != nil {
-	// 	common.Throw(w, r, common.BadRequestError(err))
-	// 	return
-	// }
-	// decodedBytes, err := base64.StdEncoding.DecodeString(requestBody.Response.UserHandle)
-	// if err != nil {
-	// 	fmt.Println("Error decoding base64:", err)
-	// 	return
-	// }
-	// userId, err := uuid.Parse(string(decodedBytes))
-	// if err != nil {
-	// 	fmt.Println("Error converting decoded bytes to uuid:", err)
-	// 	return
-	// }
+	userHandle := parsedResponse.Response.UserHandle
+	userId, _ := uuid.Parse(string(userHandle))
 
-	//Hard coded workaround for code above. I just dont know why "parse error on assetion" happens in finishdiscoverableLogin function...
-	userId, _ := uuid.Parse("0215ad0e-e57f-4173-81af-ffb79719af65")
-
-	//Get User of the assertionResponseRequest
 	user, err := s.users.Get(r.Context(), userId)
 	if err != nil {
 		log.Errorw("failed to get user", "err", err)
 		common.Throw(w, r, common.InternalServerError)
 		return
 	}
-	fmt.Print("Retrieved_user", user)
 
-	// Muss im Hauptspeicher gehalten werden.
+	// Todo: Muss im Hauptspeicher gehalten werden? -> NOPE muss über sessionID gelöst werden
 	session := *globalSession_Log
-	fmt.Print("session = ", session)
+	// r.Cookie()
 
-	// pass handler to retrieve correct user from db with matching credentialID and RawID
-	// pass session to get challenge,
-	// pass r to extract signature
-	// use publickey from db to (decrypt/Unsign) signature and match with challenge from passed session
+	// pass handler which is retrieving correct user from db by userHandle or rawId
+	// pass session to extract challenge,
+	// pass r to extract signature from r.body.response.signature
+	// get and use publickey from db to (decrypt/Unsign) signature and match with challenge from passed session
 	credential, err := s.webAuthn.FinishDiscoverableLogin(s.discoverableUserHandler,
 		session,
 		r,
 	)
+
+	// Todo: can be done smarter
 	if err != nil {
-		fmt.Print("FinishDiscoverableLogin ERROR:  = ", err) // only modified at changes?
+		log.Errorw("failed to finish login", "err", err)
+
+		switch err.Error() {
+		case "Unable to find the credential for the returned credential ID":
+			common.Throw(w, r, common.NotFoundError)
+		default:
+			common.Throw(w, r, common.InternalServerError)
+		}
 		return
 	}
 
-	//generates JWT
+	// generates jwt
 	tokenString, err := s.auth.Sign(map[string]interface{}{"id": user.ID})
 	if err != nil {
 		log.Errorw("unable to generate token string", "err", err)
 		common.Throw(w, r, common.InternalServerError)
 		return
 	}
-
+	// sets the jwt
 	cookie := http.Cookie{Name: "jwt", Value: tokenString, Path: "/", HttpOnly: true, MaxAge: math.MaxInt32}
 	common.SealCookie(r, &cookie)
 	http.SetCookie(w, &cookie)
 
 	// TODO: Handle credential.Authenticator.CloneWarning ??
 
-	// modifies "lastUsedAt" attribute of Credential which was used to log in successfully
+	// updates "lastUsedAt" attribute of users Credential that was used to log in successfully
 	for i, userCredential := range user.Credentials {
 		if bytes.Equal(userCredential.ID, credential.ID) {
 			user.Credentials[i].LastUsedAt = time.Now()
 			break
 		}
 	}
-
 	updateRequest := dto.UserUpdateRequest{
 		ID:          user.ID,
 		Name:        user.Name,
 		Avatar:      user.Avatar,
 		Credentials: user.Credentials,
 	}
-
-	// updates the user with the modified credentials
 	updatedUser, err := s.users.Update(r.Context(), updateRequest)
 	if err != nil {
 		log.Errorw("failed to update user", "err", err)
@@ -359,36 +343,17 @@ func (s *Server) verifyAuthentication(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, updatedUser)
 }
 
-// Implementing the DiscoverableUserHandler interface
+// Performs a lookup in the db to find the user based on userHandle (=userId) or alternatively by rawID (=CredentialId)
 func (s *Server) discoverableUserHandler(rawID, userHandle []byte) (webauthn.User, error) {
-	// Perform a lookup in your data store to find the user based on rawID or userHandle
-	// Replace this with your actual logic to fetch the user from your data store.
-
-	// find the user from RawID and UserHandle / which means RawID matches the ID of a Credential which is linked to a user
-	// and this user is also used to validate the response
-
-	// Example: Assume you have a function s.users.GetUserByRawID that retrieves a user by rawID.
-	// user, err := s.users.GetUserByRawID(rawID)
-	// if err != nil {
-	// 	return User{}, err
-	// }
-
-	// Alternatively, you can use userHandle to fetch the user.
-	// user, err := s.users.GetUserByUserHandle(userHandle)
-	// if err != nil {
-	//     return User{}, err
-	// }
-
-	// TEMPORARY SOLUTION
-	uuidTempUserString := "0215ad0e-e57f-4173-81af-ffb79719af65"
-	// Parse the string to obtain a UUID
-	parsedUUID, _ := uuid.Parse(uuidTempUserString)
-	user, err := s.users.Get(context.Background(), parsedUUID)
+	userId, err := uuid.Parse(string(userHandle))
 	if err != nil {
-		// Handle the error (e.g., user not found)
 		return nil, err
 	}
 
-	// Return the user, which should implement the webauthn.User interface
+	user, err := s.users.Get(context.Background(), userId)
+	if err != nil {
+		return nil, err
+	}
+
 	return user, nil
 }

@@ -1,7 +1,7 @@
-import { startRegistration } from "@simplewebauthn/browser";
+import {startRegistration} from "@simplewebauthn/browser";
 import {SERVER_HTTP_URL} from "../config";
 import {Auth} from "../types/auth";
-import {AuthenticationResponseJSON} from "@simplewebauthn/typescript-types"
+import {AuthenticationResponseJSON} from "@simplewebauthn/typescript-types";
 
 export const AuthAPI = {
   /**
@@ -49,8 +49,8 @@ export const AuthAPI = {
   },
 
   /**
-   * Registers a new Passkey for a user 
-   * 
+   * Registers a new Passkey for a user
+   *
    * @returns all Credentials of the user, including the new one
    */
   registerNewPasskey: async () => {
@@ -61,13 +61,11 @@ export const AuthAPI = {
         credentials: "include",
       });
 
-      if(response.status !== 200) {
+      if (response.status !== 200) {
         throw new Error(`register passkey request resulted in response status ${response.status}`);
       }
       const registrationOptions = await response.json();
       console.log("registrationOptions", registrationOptions);
-      // modify to require residentKey = true
-      // registrationOptions.publicKey.authenticatorSelection.requireResidentKey = true
 
       // pass registration options to authenticator to create Passkey + user verification + sign challenge
       const authenticatorResponse = await startRegistration(await registrationOptions.publicKey);
@@ -80,16 +78,14 @@ export const AuthAPI = {
         body: JSON.stringify(authenticatorResponse),
       });
 
-      if(response.status === 200){
+      if (response.status === 200) {
         const verificationResponse = await response.json();
         console.log("verificationResponse", verificationResponse);
         return verificationResponse;
       }
       throw new Error(`register passkey request resulted in response status ${response.status}`);
     } catch (error) {
-      //???
       throw new Error(`unable to register new passkey: ${error}`);
-      return undefined;
     }
   },
 
@@ -115,28 +111,32 @@ export const AuthAPI = {
     }
   },
 
-    /**
+  /**
    * Verifies the chosen Passkey to login with passkey
    */
-    verifyLogin: async (assertionResp: AuthenticationResponseJSON) => { 
-      try {
-        // post the response (signed challenge) from Authenticator to RP
-          const response = await fetch(`${SERVER_HTTP_URL}/login/passkeys/finish-authentication`, {
-            method: "POST",
-            credentials: "include",
-            body: JSON.stringify(assertionResp),
-          });
+  verifyLogin: async (assertionResp: AuthenticationResponseJSON) => {
+    try {
+      // post the response (signed challenge, ...) from Authenticator to RP
+      const response = await fetch(`${SERVER_HTTP_URL}/login/passkeys/finish-authentication`, {
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify(assertionResp),
+      });
 
-        if (response.status === 200) {
-          const body = await response.json();
-          return body;
-        }
-        
-        throw new Error(`request to verify login resulted in response status ${response.status}`);
-      } catch (error) {
-        throw new Error(`unable to verify login with error: ${error}`);
+      if (response.status === 200) {
+        const body = await response.json();
+        return body;
       }
-    },
+
+      if (response.status === 404) {
+        throw new Error(`Could not find the selected credential`);
+      }
+
+      throw new Error(`request to verify login resulted in response status ${response.status}`);
+    } catch (error) {
+      throw new Error(`unable to verify login with error: ${error}`);
+    }
+  },
 
   /**
    * Returns the current user or `undefined`, if no session is available.

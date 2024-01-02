@@ -22,14 +22,14 @@ type User struct {
 	Avatar *types.Avatar `json:"avatar,omitempty"`
 
 	// The user's passkey credentials
-	Credentials []types.ExtendedCredential `json:"credentials"` // TODO: OK? omitempty?
+	Credentials []types.ExtendedCredential `json:"credentials"` // TODO: omitempty?
 }
 
 type UserUpdateRequest struct {
 	ID          uuid.UUID                  `json:"-"`
 	Name        string                     `json:"name"`
 	Avatar      *types.Avatar              `json:"avatar,omitempty"`
-	Credentials []types.ExtendedCredential `json:"credentials"`
+	Credentials []types.ExtendedCredential `json:"credentials"` // TODO: omitempty?
 }
 
 func (u *User) From(user database.User) *User {
@@ -72,7 +72,7 @@ func ConvertToExtendedCredential(webAuthnCredential webauthn.Credential) types.E
 }
 
 func (u *User) WebAuthnIcon() string {
-	return "" // empty string OK
+	return ""
 }
 func (u *User) WebAuthnID() []byte {
 	return []byte(u.ID.String())
