@@ -216,21 +216,15 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	var webAuthn *webauthn.WebAuthn
-
 	// Initialize webAuthn Instance
 	wconfig := &webauthn.Config{
 		RPDisplayName: "Go Webauthn",
 		RPID:          "localhost",
 		RPOrigins:     []string{"http://localhost:3000"},
 	}
-
-	// Attempt to create a new WebAuthn instance
-	var err error
-	webAuthn, err = webauthn.New(wconfig)
+	webAuthn, err := webauthn.New(wconfig)
 	if err != nil {
-		fmt.Println(err)
-		// Handle the error appropriately
+		logger.Get().Fatalf("failed to initilaize webauthn instance: %v", err)
 	}
 
 	db, err := migrations.MigrateDatabase(c.String("database"))
