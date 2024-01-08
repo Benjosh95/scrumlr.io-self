@@ -178,6 +178,11 @@ func (s *Server) protectedRoutes(r chi.Router) {
 			r.Get("/", s.getUser)
 			r.Put("/", s.updateUser)
 		})
+
+		r.Route("/passkey", func(r chi.Router) {
+			r.Post("/start-registration", s.startRegistration)
+			r.Post("/finalize-registration", s.finalizeRegistration)
+		})
 	})
 }
 

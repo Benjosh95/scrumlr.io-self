@@ -16,6 +16,7 @@ import {TextInput} from "components/TextInput";
 import {TextInputLabel} from "components/TextInputLabel";
 import {ValidationError} from "components/ValidationError";
 import {SHOW_LEGAL_DOCUMENTS} from "../../config";
+import { HankoAuth } from "components/HankoAuth";
 
 interface State {
   from: {pathname: string};
@@ -62,6 +63,7 @@ export const LoginBoard = () => {
 
             <LoginProviders originURL={`${window.location.origin}${redirectPath}`} />
 
+            <HankoAuth/>
             <hr className="login-board__divider" data-label="or" />
 
             <fieldset className="login-board__fieldset">

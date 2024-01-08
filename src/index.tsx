@@ -1,4 +1,4 @@
-import React, {Suspense} from "react";
+import {Suspense} from "react";
 import {createRoot} from "react-dom/client";
 import {Provider} from "react-redux";
 import "index.scss";
@@ -49,7 +49,7 @@ if (ANALYTICS_DATA_DOMAIN && ANALYTICS_SRC) {
 const root = createRoot(document.getElementById("root") as HTMLDivElement);
 
 root.render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <I18nextProvider i18n={i18n}>
       <Provider store={store}>
         <Html />
@@ -60,7 +60,7 @@ root.render(
         </Suspense>
       </Provider>
     </I18nextProvider>
-  </React.StrictMode>
+  // </React.StrictMode>
 );
 store.dispatch(Actions.initApplication());
 

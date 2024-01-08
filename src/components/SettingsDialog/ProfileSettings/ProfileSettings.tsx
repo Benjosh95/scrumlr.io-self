@@ -1,6 +1,6 @@
 import classNames from "classnames";
 import {useTranslation} from "react-i18next";
-import {useState} from "react";
+import { useState} from "react";
 import store, {useAppSelector} from "store";
 import {Actions} from "store/action";
 import "./ProfileSettings.scss";
@@ -10,6 +10,7 @@ import {Toggle} from "components/Toggle";
 import {AvatarSettings} from "../Components/AvatarSettings";
 import {SettingsInput} from "../Components/SettingsInput";
 import {SettingsButton} from "../Components/SettingsButton";
+import { HankoProfile } from "components/HankoProfile";
 
 export const ProfileSettings = () => {
   const {t} = useTranslation();
@@ -39,6 +40,9 @@ export const ProfileSettings = () => {
           />
 
           <AvatarSettings id={id} />
+          
+          <HankoProfile/>
+
           <div className="profile-settings__hotkey-settings">
             <SettingsButton
               className="profile-settings__toggle-hotkeys-button"
