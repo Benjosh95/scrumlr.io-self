@@ -143,6 +143,8 @@ func (s *Server) publicRoutes(r chi.Router) chi.Router {
 				r.Get("/", s.beginAuthProviderVerification)
 				r.Get("/callback", s.verifyAuthProviderCallback)
 			})
+			r.Post("/passkey", s.signInWithPasskey)
+
 		})
 	})
 }
