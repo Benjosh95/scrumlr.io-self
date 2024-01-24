@@ -1,3 +1,4 @@
+import {PublicKeyCredentialWithAssertionJSON} from "@github/webauthn-json";
 import {SERVER_HTTP_URL} from "../config";
 import {Auth} from "../types/auth";
 
@@ -33,6 +34,32 @@ export const AuthAPI = {
       });
 
       if (response.status === 201) {
+        const body = await response.json();
+        return {
+          id: body.id,
+          name: body.name,
+        };
+      }
+
+      throw new Error(`sign in request resulted in response status ${response.status}`);
+    } catch (error) {
+      throw new Error(`unable to sign in with error: ${error}`);
+    }
+  },
+
+  /**
+    TODO
+   */
+  signInWithPasskey: async (assertionResponse: PublicKeyCredentialWithAssertionJSON) => {
+    try {
+      console.log("assertionResponse", assertionResponse);
+      const response = await fetch(`${SERVER_HTTP_URL}/login/passkey`, {
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify(assertionResponse),
+      });
+
+      if (response.status === 200) {
         const body = await response.json();
         return {
           id: body.id,

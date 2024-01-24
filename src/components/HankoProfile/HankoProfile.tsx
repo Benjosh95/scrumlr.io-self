@@ -5,7 +5,7 @@ import {useAppSelector} from "store";
 
 const passkeyApi = tenant({
   tenantId: "64284d4b-750b-4c6b-a809-9601c6cd6ae4",
-  apiKey: "81EX6eV-rysIp2t7m8ZxYoJxNf2oJ9W2e5w_TW84qOJZ55YYWxRCuMj6Xl03BmuU8CFDbiP-yzOTmx_2IgmqWA==",
+  apiKey: "81EX6eV-rysIp2t7m8ZxYoJxNf2oJ9W2e5w_TW84qOJZ55YYWxRCuMj6Xl03BmuU8CFDbiP-yzOTmx_2IgmqWA==", // TODO: use better backend to proxy and not story apiKey here.
 });
 
 export const HankoProfile = () => {
@@ -22,6 +22,7 @@ export const HankoProfile = () => {
 
     const credential = await create(creationOptions as CredentialCreationOptionsJSON);
 
+    //TODO: response not needed
     const response = await fetch(`${SERVER_HTTP_URL}/passkey/finalize-registration`, {
       method: "POST",
       credentials: "include",
