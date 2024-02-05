@@ -17,6 +17,7 @@ import {register} from "serviceWorkerRegistration";
 import Plausible from "plausible-tracker";
 import {SHOW_LEGAL_DOCUMENTS, ANALYTICS_DATA_DOMAIN, ANALYTICS_SRC} from "./config";
 import "react-tooltip/dist/react-tooltip.css";
+import {CorbadoProvider} from "@corbado/react";
 
 const APP_VERSION = process.env.REACT_APP_VERSION;
 if (APP_VERSION) {
@@ -55,7 +56,9 @@ root.render(
         <Html />
         <Suspense fallback={<LoadingScreen />}>
           <ToastContainer limit={2} />
-          <Router />
+          <CorbadoProvider projectId={"pro-1697688654308671815"}>
+            <Router />
+          </CorbadoProvider>
           {SHOW_LEGAL_DOCUMENTS && <CookieNotice />}
         </Suspense>
       </Provider>

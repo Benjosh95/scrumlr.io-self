@@ -16,6 +16,7 @@ import {TextInput} from "components/TextInput";
 import {TextInputLabel} from "components/TextInputLabel";
 import {ValidationError} from "components/ValidationError";
 import {SHOW_LEGAL_DOCUMENTS} from "../../config";
+import { CorbadoAuth } from "@corbado/react";
 
 interface State {
   from: {pathname: string};
@@ -48,6 +49,10 @@ export const LoginBoard = () => {
     setSubmitted(true);
   }
 
+  function handlePKLogin() {
+    
+  }
+
   // https://dribbble.com/shots/7757250-Sign-up-revamp
   return (
     <div className="login-board">
@@ -59,6 +64,10 @@ export const LoginBoard = () => {
             </Link>
 
             <h1>{t("LoginBoard.title")}</h1>
+
+            <CorbadoAuth
+              onLoggedIn={handlePKLogin}
+            />
 
             <LoginProviders originURL={`${window.location.origin}${redirectPath}`} />
 
