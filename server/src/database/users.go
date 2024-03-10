@@ -106,6 +106,13 @@ func (d *Database) GetUser(id uuid.UUID) (User, error) {
 	return user, err
 }
 
+// GetUserByUsername returns the user by the specified username
+func (d *Database) GetUserByUsername(name string) (User, error) {
+	var user User
+	err := d.db.NewSelect().Model(&user).Where("name = ?", name).Scan(context.Background())
+	return user, err
+}
+
 func (d *Database) IsUserAnonymous(id uuid.UUID) (bool, error) {
 	count, err := d.db.NewSelect().
 		Table("users").

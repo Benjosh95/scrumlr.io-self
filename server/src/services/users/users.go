@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"database/sql"
+
 	"scrumlr.io/server/common"
 	"scrumlr.io/server/common/dto"
 	"scrumlr.io/server/services"
@@ -32,6 +33,21 @@ func (s *UserService) Get(ctx context.Context, userID uuid.UUID) (*dto.User, err
 			return nil, common.NotFoundError
 		}
 		log.Errorw("unable to get user", "user", userID, "err", err)
+		return nil, common.InternalServerError
+	}
+
+	return new(dto.User).From(user), err
+}
+
+func (s *UserService) GetByUsername(ctx context.Context, name string) (*dto.User, error) {
+	log := logger.FromContext(ctx)
+	user, err := s.database.GetUserByUsername(name)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, common.NotFoundError
+		}
+		log.Errorw("unable to get user", "username", name, "err", err)
 		return nil, common.InternalServerError
 	}
 

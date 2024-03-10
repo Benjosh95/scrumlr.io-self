@@ -24,6 +24,7 @@ type Server struct {
 	basePath string
 
 	realtime *realtime.Broker
+	corbado  *auth.CombinedSDK
 	auth     auth.Auth
 
 	boards         services.Boards
@@ -47,6 +48,7 @@ type Server struct {
 func New(
 	basePath string,
 	rt *realtime.Broker,
+	corbado *auth.CombinedSDK,
 	auth auth.Auth,
 	boards services.Boards,
 	votings services.Votings,
@@ -88,6 +90,7 @@ func New(
 	s := Server{
 		basePath:                         basePath,
 		realtime:                         rt,
+		corbado:                          corbado,
 		boardSubscriptions:               make(map[uuid.UUID]*BoardSubscription),
 		boardSessionRequestSubscriptions: make(map[uuid.UUID]*BoardSessionRequestSubscription),
 		auth:                             auth,
@@ -143,6 +146,10 @@ func (s *Server) publicRoutes(r chi.Router) chi.Router {
 				r.Get("/", s.beginAuthProviderVerification)
 				r.Get("/callback", s.verifyAuthProviderCallback)
 			})
+
+			r.Route("/passkeys/webhooks", func(r chi.Router) {
+				r.Post("/", s.userExistsWebhook)
+			})
 		})
 	})
 }
@@ -177,6 +184,10 @@ func (s *Server) protectedRoutes(r chi.Router) {
 		r.Route("/user", func(r chi.Router) {
 			r.Get("/", s.getUser)
 			r.Put("/", s.updateUser)
+		})
+
+		r.Route("/passkeys/", func(r chi.Router) {
+			r.Get("/createAssociationToken", s.getAssociationToken)
 		})
 	})
 }

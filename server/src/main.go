@@ -25,6 +25,8 @@ import (
 	"scrumlr.io/server/services/users"
 	"scrumlr.io/server/services/votings"
 
+	"github.com/corbado/corbado-go"
+	"github.com/corbado/corbado-go/pkg/stdlib"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
@@ -223,6 +225,23 @@ func run(c *cli.Context) error {
 		return errors.New("you may not start the application without a private key. Use 'insecure' flag with caution if you want to use default keypair to sign jwt's")
 	}
 
+	config, err := corbado.NewConfig("pro-1697688654308671815", "corbado1_Tcr7ynGVzoRCU7YwPx6MsYfNXLS9YH")
+	if err != nil {
+		panic(err)
+	}
+	corbadoSDK, err := corbado.NewSDK(config)
+	if err != nil {
+		panic(err)
+	}
+	corbadoSDKHelper, err := stdlib.NewSDKHelpers(config)
+	if err != nil {
+		panic(err)
+	}
+	corbado := &auth.CombinedSDK{
+		CorbadoSDK:       corbadoSDK,
+		CorbadoSDKHelper: corbadoSDKHelper,
+	}
+
 	var rt *realtime.Broker
 	if c.String("redis-address") != "" {
 		rt, err = realtime.NewRedis(realtime.RedisServer{
@@ -310,6 +329,7 @@ func run(c *cli.Context) error {
 	s := api.New(
 		basePath,
 		rt,
+		corbado,
 		authConfig,
 		boardService,
 		votingService,

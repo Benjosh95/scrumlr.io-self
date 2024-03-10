@@ -10,6 +10,7 @@ import (
 
 type Users interface {
 	Get(ctx context.Context, id uuid.UUID) (*dto.User, error)
+	GetByUsername(ctx context.Context, name string) (*dto.User, error)
 	LoginAnonymous(ctx context.Context, name string) (*dto.User, error)
 	CreateGitHubUser(ctx context.Context, id, name, avatarUrl string) (*dto.User, error)
 	CreateGoogleUser(ctx context.Context, id, name, avatarUrl string) (*dto.User, error)

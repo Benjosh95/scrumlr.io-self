@@ -2,7 +2,7 @@ import {Link, useNavigate} from "react-router-dom";
 import {getRandomName} from "constants/name";
 import {Auth} from "utils/auth";
 import {Toast} from "utils/Toast";
-import {useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {LoginProviders} from "components/LoginProviders";
 import {Trans, useTranslation} from "react-i18next";
 import {useLocation} from "react-router";
@@ -30,6 +30,25 @@ export const LoginBoard = () => {
   const [displayName, setDisplayName] = useState(getRandomName());
   const [termsAccepted, setTermsAccepted] = useState(!SHOW_LEGAL_DOCUMENTS);
   const [submitted, setSubmitted] = useState(false);
+
+  const PASSKEY_LOGIN_SUCCESSFUL = "PASSKEY_LOGIN_SUCCESSFUL";
+  const onPasskeyLoginSuccessful = useCallback((_event: any) => {
+    console.log(_event);
+  }, []);
+
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.addEventListener(PASSKEY_LOGIN_SUCCESSFUL, onPasskeyLoginSuccessful);
+    }
+    // Cleanup function
+    return () => {
+      if (ref.current) {
+        ref.current.removeEventListener(PASSKEY_LOGIN_SUCCESSFUL, onPasskeyLoginSuccessful);
+      }
+    };
+  }, []);
 
   let redirectPath = "/";
   if (location.state) {
@@ -72,6 +91,15 @@ export const LoginBoard = () => {
             <LoginProviders originURL={`${window.location.origin}${redirectPath}`} />
 
             <hr className="login-board__divider" data-label="or" />
+
+            {/* <CorbadoAuth/> bzw. <SignUp/> und <Login/> */}
+            <div>Passkey gönnung</div>
+            <corbado-auth project-id="pro-1697688654308671815" conditional="yes">
+              <input name="username" id="corbado-username" required autoComplete="webauthn" />
+            </corbado-auth>
+
+            <corbado-passkey-associate-login ref={ref} project-id="pro-1697688654308671815" />
+            {/* hat kein autofill...  */}
 
             <fieldset className="login-board__fieldset">
               <legend className="login-board__fieldset-legend">{t("LoginBoard.anonymousLogin")}</legend>
